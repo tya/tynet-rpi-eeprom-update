@@ -1,0 +1,30 @@
+name: tynet-rpi-eeprom-update
+arch: arm64
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: Ty Alexander <ty.alexander@gmail.com>
+description: |
+  Fetch and stage the newest pieeprom-*.bin from upstream
+  raspberrypi/rpi-eeprom on GitHub, preserving the currently-running
+  EEPROM config. Workaround for Ubuntu's rpi-eeprom package lagging
+  upstream by months. Manual invocation only; user reboots when ready.
+homepage: https://github.com/tya/tynet-rpi-eeprom-update
+license: Proprietary
+depends:
+  - rpi-eeprom
+  - curl
+contents:
+  - src: ./packaging/tynet-rpi-eeprom-update.sh
+    dst: /usr/bin/tynet-rpi-eeprom-update
+    file_info:
+      mode: 0755
+  - src: ./packaging/copyright
+    dst: /usr/share/doc/tynet-rpi-eeprom-update/copyright
+    file_info:
+      mode: 0644
+  - src: ./dist/changelog.gz
+    dst: /usr/share/doc/tynet-rpi-eeprom-update/changelog.gz
+    file_info:
+      mode: 0644

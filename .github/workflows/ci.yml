@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - run: make lint
+
+  deb-lint:
+    name: Build .deb and lintian-check
+    runs-on: ubuntu-latest
+    env:
+      NFPM_VERSION: 2.46.3
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install nfpm + lintian
+        run: |
+          curl -sSL "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin nfpm
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lintian
+          nfpm --version
+          lintian --version
+
+      - name: Build .deb
+        run: make deb VERSION=0.0.0~ci
+
+      - name: Lintian
+        run: lintian --info --display-info --color always --fail-on error dist/*.deb
