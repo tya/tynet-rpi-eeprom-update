@@ -39,7 +39,7 @@ Options:
 EOF
 }
 
-log() { [ "$cron_mode" -eq 0 ] && printf '%s\n' "$*" || true; }
+log() { if [ "$cron_mode" -eq 0 ]; then printf '%s\n' "$*"; fi; }
 warn() { printf '%s\n' "$*" >&2; }
 die() { warn "error: $*"; exit 1; }
 
