@@ -79,9 +79,36 @@ done
 
 dir="firmware-${platform}/${channel}"
 
+# Upstream sometimes makes a channel a symlink (e.g. firmware-2711/beta -> latest/).
+# The GitHub contents API returns a single object with "type": "symlink" in
+# that case rather than the linked dir's listing, so resolve one hop and
+# re-query if needed.
+fetch_listing() {
+    target_dir=$1
+    response=$(curl -fsSL "${API_BASE}/${target_dir}")
+    case "$response" in
+        \[*) printf '%s' "$response"; return ;;
+    esac
+    type=$(printf '%s' "$response" | awk -F'"' '/"type"[[:space:]]*:/{print $4; exit}')
+    [ "$type" = "symlink" ] || die "unexpected API response shape for ${target_dir} (type=${type:-unknown})"
+    target=$(printf '%s' "$response" | awk -F'"' '/"target"[[:space:]]*:/{print $4; exit}')
+    target=${target%/}
+    parent=$(dirname "$target_dir")
+    if [ "$parent" = "." ]; then
+        resolved=$target
+    else
+        resolved="$parent/$target"
+    fi
+    # Goes to stderr because fetch_listing's stdout is captured by $().
+    if [ "$cron_mode" -eq 0 ]; then
+        printf '  (%s is a symlink to %s)\n' "$target_dir" "$resolved" >&2
+    fi
+    curl -fsSL "${API_BASE}/${resolved}"
+}
+
 # Newest pieeprom-YYYY-MM-DD.bin in the channel directory. Names sort
 # lexically by date because they're zero-padded ISO-8601.
-latest_file=$(curl -fsSL "${API_BASE}/${dir}" \
+latest_file=$(fetch_listing "$dir" \
     | awk -F'"' '/"name":/ {print $4}' \
     | grep -E '^pieeprom-[0-9]{4}-[0-9]{2}-[0-9]{2}\.bin$' \
     | sort -r \
